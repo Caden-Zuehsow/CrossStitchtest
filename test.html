@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross Stitch Pattern Converter</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+        }
+        #message {
+            margin-top: 20px;
+        }
+        #pattern, #key-section {
+            margin-top: 20px;
+            display: none; /* Initially hidden */
+        }
+    </style>
+</head>
+<body>
+    <h1>Cross Stitch Pattern Converter</h1>
+
+    <!-- Upload Form -->
+    <form id="upload-form" enctype="multipart/form-data">
+        <label for="image-upload">Select an image to upload:</label>
+        <input type="file" id="image-upload" name="image" accept="image/*" required>
+        <br><br>
+
+        <label for="stitches">Grid Size (e.g., 20 for a 20x20 grid):</label>
+        <input type="number" id="stitches" name="stitches" value="20" min="1" required>
+        <br><br>
+
+        <label for="max-colors">Maximum Number of Colors:</label>
+        <input type="number" id="max-colors" name="max-colors" value="10" min="2" max="256" required>
+        <br><br>
+
+        <button type="submit">Convert to Cross-Stitch Pattern</button>
+    </form>
+
+    <!-- Message and Results -->
+    <div id="message"></div>
+    <div id="pattern">
+        <h2>Your Cross Stitch Pattern:</h2>
+        <canvas id="pattern-canvas"></canvas>
+        <br>
+        <button id="download-pattern">Download Pattern</button>
+    </div>
+
+    <div id="key-section">
+        <h2>Symbols Key:</h2>
+        <div id="symbols-key"></div>
+        <br>
+        <button id="download-key">Download Symbols Key</button>
+    </div>
+
+    <script>
+        const dmcColors = [
+            { "r": 244, "g": 146, "b": 56, "dmc": "DMC 13332", "color_name": "Apricot" },
+  { "r": 35, "g": 140, "b": 105, "dmc": "DMC 16187", "color_name": "Aquamarine" },
+  { "r": 129, "g": 148, "b": 66, "dmc": "DMC 16261", "color_name": "Avocado Green" },
+  { "r": 255, "g": 206, "b": 206, "dmc": "DMC 6963", "color_name": "Baby Pink" },
+  { "r": 0, "g": 0, "b": 0, "dmc": "DMC 6150", "color_name": "Black" },
+  { "r": 49, "g": 69, "b": 21, "dmc": "DMC 16270", "color_name": "Black Avocado Green" },
+  { "r": 58, "g": 39, "b": 35, "dmc": "DMC 15478", "color_name": "Black Brown" },
+  { "r": 99, "g": 141, "b": 110, "dmc": "DMC 16876", "color_name": "Blue Green" },
+  { "r": 174, "g": 218, "b": 98, "dmc": "DMC 6078", "color_name": "Bright Chartreuse" },
+  { "r": 7, "g": 113, "b": 26, "dmc": "DMC 16227", "color_name": "Bright Green" },
+  { "r": 253, "g": 85, "b": 47, "dmc": "DMC 12332", "color_name": "Bright Orange" },
+
+        ];
+
+        const symbols = ['$', '_', '&', 'E', '3', 'B', '7', 'G', 'L', 'Z', 'X', 'T', '#', '@', '%', '*', 'O', 'H', 'Y'];
+
+        document.getElementById("upload-form").onsubmit = function(event) {
+            event.preventDefault();
+
+            const messageDiv = document.getElementById("message");
+            messageDiv.innerHTML = "Processing...";
+
+            const imgFile = document.getElementById("image-upload").files[0];
+            const stitches = parseInt(document.getElementById("stitches").value);
+            const maxColors = parseInt(document.getElementById("max-colors").value);
+
+            const imgElement = new Image();
+
+            imgElement.onload = function() {
+                const canvas = document.getElementById("pattern-canvas");
+                const ctx = canvas.getContext("2d");
+
+                const cellSize = Math.floor(Math.min(imgElement.width, imgElement.height) / stitches);
+                canvas.width = cellSize * stitches;
+                canvas.height = cellSize * stitches;
+
+                ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const pixels = imageData.data;
+
+                let colorMap = {};
+                let usedSymbols = new Set();
+                let colorList = [];
+
+                for (let row = 0; row < stitches; row++) {
+                    for (let col = 0; col < stitches; col++) {
+                        let r = 0, g = 0, b = 0, count = 0;
+
+                        for (let y = row * cellSize; y < (row + 1) * cellSize; y++) {
+                            for (let x = col * cellSize; x < (col + 1) * cellSize; x++) {
+                                const idx = (y * canvas.width + x) * 4;
+                                r += pixels[idx];
+                                g += pixels[idx + 1];
+                                b += pixels[idx + 2];
+                                count++;
+                            }
+                        }
+
+                        r = Math.floor(r / count);
+                        g = Math.floor(g / count);
+                        b = Math.floor(b / count);
+
+                        const closestDmc = getClosestDmcColor(r, g, b);
+                        const colorKey = `${closestDmc.r},${closestDmc.g},${closestDmc.b}`;
+
+                        if (!colorMap[colorKey]) {
+                            const symbol = symbols.find(s => !usedSymbols.has(s));
+                            if (symbol) {
+                                colorMap[colorKey] = { color: closestDmc, symbol };
+                                usedSymbols.add(symbol);
+                                colorList.push({ color: closestDmc, symbol });
+                                if (colorList.length >= maxColors) break;
+                            }
+                        }
+
+                        ctx.fillStyle = `rgb(${closestDmc.r},${closestDmc.g},${closestDmc.b})`;
+                        ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+
+                        const symbol = colorMap[colorKey].symbol;
+                        ctx.fillStyle = "black";
+                        ctx.font = `${cellSize / 2}px Arial`;
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillText(symbol, col * cellSize + cellSize / 2, row * cellSize + cellSize / 2);
+                    }
+                }
+
+                messageDiv.innerHTML = "Conversion Completed!";
+                document.getElementById("pattern").style.display = "block";
+                generateSymbolsKey(colorList);
+            };
+
+            imgElement.src = URL.createObjectURL(imgFile);
+        };
+
+        function getClosestDmcColor(r, g, b) {
+            let minDist = Infinity;
+            let closestDmc = dmcColors[0];
+
+            for (const color of dmcColors) {
+                const dist = Math.sqrt(
+                    Math.pow(r - color.r, 2) +
+                    Math.pow(g - color.g, 2) +
+                    Math.pow(b - color.b, 2)
+                );
+
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestDmc = color;
+                }
+            }
+
+            return closestDmc;
+        }
+
+        function generateSymbolsKey(colorList) {
+            const keyDiv = document.getElementById("symbols-key");
+            keyDiv.innerHTML = "";
+
+            colorList.forEach(({ color, symbol }) => {
+                keyDiv.innerHTML += `<p>${symbol} - ${color.dmc} (${color.color_name})</p>`;
+            });
+
+            document.getElementById("key-section").style.display = "block";
+        }
+    </script>
+</body>
+</html>
