@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page - Cross Stitch Pattern Converter</title>
+    <link rel="stylesheet" href="your_existing_styles.css">
+    <style>
+        #message {
+            margin-top: 20px;
+        }
+        #pattern, #key-section, #additional-pattern-section {
+            margin-top: 20px;
+            display: none; /* Initially hidden */
+        }
+        canvas {
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Page - Cross Stitch Pattern Converter</h1>
+
+    <!-- Image Upload Form -->
+    <form id="upload-form" enctype="multipart/form-data">
+        <label for="image-upload">Select an image to upload:</label>
+        <input type="file" id="image-upload" name="image" accept="image/*" required>
+        <br><br>
+
+        <label for="stitches">Grid Size (e.g., 20 for a 20x20 grid):</label>
+        <input type="number" id="stitches" name="stitches" value="20" min="1" required>
+        <br><br>
+
+        <label for="color-count">Number of Colors:</label>
+        <input type="number" id="color-count" name="color-count" value="9" min="2" max="256" required>
+        <br><br>
+
+        <button type="submit">Convert to Cross-Stitch Pattern</button>
+    </form>
+
+    <!-- Display messages and results -->
+    <div id="message"></div>
+    <div id="pattern">
+        <h2>Your Cross Stitch Pattern:</h2>
+        <canvas id="pattern-canvas"></canvas>
+        <br>
+        <button id="download">Download Pattern</button>
+    </div>
+
+    <div id="key-section">
+        <h2>Symbols Key:</h2>
+        <div id="symbols-key"></div> <!-- Symbols Key will be displayed here -->
+        <br>
+        <button id="download-key">Download Symbols Key</button>
+    </div>
+
+    <div id="additional-pattern-section">
+        <h2>Additional Pattern with Color:</h2>
+        <canvas id="additional-pattern-canvas"></canvas>
+        <br>
+        <button id="download-additional-pattern">Download Additional Color Pattern</button>
+    </div>
+
+    <!-- Link to JavaScript File -->
+    <script>
+        // DMC Color Mapping based on the format provided
+        const dmcColors = [
+            
+  { "r": 244, "g": 146, "b": 56, "dmc": "DMC 13332", "color_name": "Apricot" },
+  { "r": 35, "g": 140, "b": 105, "dmc": "DMC 16187", "color_name": "Aquamarine" },
+  { "r": 129, "g": 148, "b": 66, "dmc": "DMC 16261", "color_name": "Avocado Green" },
+  { "r": 255, "g": 206, "b": 206, "dmc": "DMC 6963", "color_name": "Baby Pink" },
+  { "r": 0, "g": 0, "b": 0, "dmc": "DMC 6150", "color_name": "Black" },
+  { "r": 49, "g": 69, "b": 21, "dmc": "DMC 16270", "color_name": "Black Avocado Green" },
+  { "r": 58, "g": 39, "b": 35, "dmc": "DMC 15478", "color_name": "Black Brown" },
+  { "r": 99, "g": 141, "b": 110, "dmc": "DMC 16876", "color_name": "Blue Green" },
+  { "r": 174, "g": 218, "b": 98, "dmc": "DMC 6078", "color_name": "Bright Chartreuse" },
+  { "r": 7, "g": 113, "b": 26, "dmc": "DMC 16227", "color_name": "Bright Green" },
+  { "r": 253, "g": 85, "b": 47, "dmc": "DMC 12332", "color_name": "Bright Orange" },
+  { "r": 253, "g": 52, "b": 12, "dmc": "DMC 6116", "color_name": "Bright Orange-Red" },
+  { "r": 217, "g": 0, "b": 40, "dmc": "DMC 13046", "color_name": "Bright Red" },
+  { "r": 217, "g": 0, "b": 40, "dmc": "DMC 6666", "color_name": "Bright Red" },
+  { "r": 217, "g": 0, "b": 40, "dmc": "DMC 13500", "color_name": "Bright Red" },
+  { "r": 230, "g": 96, "b": 7, "dmc": "DMC 12330", "color_name": "Burnt Orange" },
+  { "r": 230, "g": 96, "b": 7, "dmc": "DMC 6117", "color_name": "Burnt Orange" },
+  { "r": 122, "g": 177, "b": 70, "dmc": "DMC 16238", "color_name": "Chartreuse" },
+  { "r": 143, "g": 109, "b": 101, "dmc": "DMC 15379", "color_name": "Cocoa" },
+  { "r": 222, "g": 96, "b": 94, "dmc": "DMC 13011", "color_name": "Coral" },
+  { "r": 222, "g": 96, "b": 94, "dmc": "DMC 6030", "color_name": "Coral" },
+  { "r": 238, "g": 97, "b": 149, "dmc": "DMC 13001", "color_name": "Cranberry" },
+  { "r": 255, "g": 248, "b": 229, "dmc": "DMC 12275", "color_name": "Cream" },
+  { "r": 255, "g": 248, "b": 229, "dmc": "DMC 6155", "color_name": "Cream" },
+  { "r": 243, "g": 65, "b": 136, "dmc": "DMC 13088", "color_name": "Cyclamen Pink" },
+  { "r": 130, "g": 168, "b": 201, "dmc": "DMC 17021", "color_name": "Delft Blue" },
+  { "r": 130, "g": 168, "b": 201, "dmc": "DMC 6017", "color_name": "Delft Blue" },
+  { "r": 203, "g": 143, "b": 115, "dmc": "DMC 13883", "color_name": "Desert Sand" },
+  { "r": 49, "g": 112, "b": 116, "dmc": "DMC 17052", "color_name": "Dk Antique Blue" },
+  { "r": 49, "g": 112, "b": 116, "dmc": "DMC 6163", "color_name": "Dk Antique Blue" },
+  { "r": 99, "g": 140, "b": 84, "dmc": "DMC 6930", "color_name": "Dk Antique Blue" },
+  { "r": 106, "g": 85, "b": 97, "dmc": "DMC 13084", "color_name": "Dk Antique Mauve" },
+  { "r": 117, "g": 85, "b": 97, "dmc": "DMC 14224", "color_name": "Dk Antique Violet" },
+  { "r": 10, "g": 109, "b": 76, "dmc": "DMC 16212", "color_name": "Dk Aquamarine" },
+  { "r": 112, "g": 120, "b": 64, "dmc": "DMC 18900", "color_name": "Dk Beaver Gray" },
+  { "r": 106, "g": 71, "b": 38, "dmc": "DMC 15360", "color_name": "Dk Beige Brown" },
+  { "r": 106, "g": 71, "b": 38, "dmc": "DMC 6093", "color_name": "Dk Beige Brown" },
+  { "r": 184, "g": 173, "b": 146, "dmc": "DMC 15832", "color_name": "Dk Beige Gray" },
+  { "r": 54, "g": 104, "b": 139, "dmc": "DMC 17181", "color_name": "Dk Blue" },
+  { "r": 61, "g": 118, "b": 84, "dmc": "DMC 16878", "color_name": "Dk Blue Green" },
+  { "r": 61, "g": 118, "b": 84, "dmc": "DMC 6195", "color_name": "Dk Blue Green" },
+  { "r": 101, "g": 96, "b": 64, "dmc": "DMC 18500", "color_name": "Dk Brown Gray" },
+  { "r": 99, "g": 147, "b": 62, "dmc": "DMC 6217", "color_name": "Dk Carnation" },
+  { "r": 99, "g": 147, "b": 62, "dmc": "DMC 6215", "color_name": "Dk Carnation" },
+  { "r": 103, "g": 112, "b": 105, "dmc": "DMC 17800", "color_name": "Dk Celadon" },
+  { "r": 243, "g": 45, "b": 62, "dmc": "DMC 6217", "color_name": "Dk Carnation" },
+  { "r": 243, "g": 45, "b": 62, "dmc": "DMC 6891", "color_name": "Dk Carnation" },
+  { "r": 101, "g": 61, "b": 15, "dmc": "DMC 15360", "color_name": "Dk Coffee Brown" },
+  { "r": 101, "g": 61, "b": 15, "dmc": "DMC 15475", "color_name": "Dk Coffee Brown" },
+  { "r": 101, "g": 61, "b": 15, "dmc": "DMC 6093", "color_name": "Dk Coffee Brown" },
+  { "r": 199, "g": 46, "b": 51, "dmc": "DMC 12335", "color_name": "Dk Coral" },
+  { "r": 75, "g": 73, "b": 125, "dmc": "DMC 17150", "color_name": "Dk Cornflower Blue" },
+  { "r": 222, "g": 34, "b": 113, "dmc": "DMC 13056", "color_name": "Dk Cranberry" },
+  { "r": 222, "g": 34, "b": 113, "dmc": "DMC 13128", "color_name": "Dk Cranberry" },
+  { "r": 230, "g": 54, "b": 124, "dmc": "DMC 13063", "color_name": "Dk Cyclamen Pink" },
+  { "r": 70, "g": 113, "b": 148, "dmc": "DMC 17978", "color_name": "Dk Dark Baby Blue" },
+  { "r": 70, "g": 113, "b": 148, "dmc": "DMC 6003", "color_name": "Dk Dark Baby Blue" },
+  { "r": 62, "g": 94, "b": 160, "dmc": "DMC 17022", "color_name": "Dk Delft Blue" },
+  { "r": 62, "g": 94, "b": 160, "dmc": "DMC 6798", "color_name": "Dk Delft Blue" },
+  { "r": 187, "g": 136, "b": 113, "dmc": "DMC 15376", "color_name": "Dk Desert Sand" },
+  { "r": 187, "g": 136, "b": 113, "dmc": "DMC 15578", "color_name": "Dk Desert Sand" },
+  { "r": 111, "g": 102, "b": 65, "dmc": "DMC 15889", "color_name": "Dk Drab Brown" },
+  { "r": 1, "g": 110, "b": 165, "dmc": "DMC 17010", "color_name": "Dk Electric Blue" },
+  { "r": 30, "g": 144, "b": 68, "dmc": "DMC 16031", "color_name": "Dk Emerald Green" },
+  { "r": 64, "g": 129, "b": 40, "dmc": "DMC 16258", "color_name": "Dk Forest Green" },
+  { "r": 64, "g": 129, "b": 40, "dmc": "DMC 6061", "color_name": "Dk Forest Green" },
+  { "r": 121, "g": 0, "b": 28, "dmc": "DMC 11814", "color_name": "Dk Garnet" },
+  { "r": 121, "g": 0, "b": 28, "dmc": "DMC 6814", "color_name": "Dk Garnet" },
+  { "r": 142, "g": 76, "b": 18, "dmc": "DMC 15349", "color_name": "Dk Golden Brown" },
+  { "r": 142, "g": 76, "b": 18, "dmc": "DMC 15356", "color_name": "Dk Golden Brown" },
+  { "r": 142, "g": 76, "b": 18, "dmc": "DMC 6975", "color_name": "Dk Golden Brown" },
+  { "r": 112, "g": 54, "b": 91, "dmc": "DMC 14224", "color_name": "Dk Grape" },
+  { "r": 82, "g": 135, "b": 121, "dmc": "DMC 16007", "color_name": "Dk Gray Green" },
+  { "r": 82, "g": 135, "b": 121, "dmc": "DMC 17226", "color_name": "Dk Gray Green" },
+  { "r": 154, "g": 123, "b": 51, "dmc": "DMC 15374", "color_name": "Dk Hazelnut Brown" },
+  { "r": 47, "g": 105, "b": 19, "dmc": "DMC 6325", "color_name": "Dk Hunter Green" },
+  { "r": 110, "g": 120, "b": 59, "dmc": "DMC 16845", "color_name": "Dk Khaki Green" },
+  { "r": 160, "g": 120, "b": 165, "dmc": "DMC 14302", "color_name": "Dk Lavender" },
+  { "r": 250, "g": 200, "b": 0, "dmc": "DMC 12298", "color_name": "Dk Lemon" },
+  { "r": 250, "g": 200, "b": 0, "dmc": "DMC 6130", "color_name": "Dk Lemon" },
+  { "r": 140, "g": 65, "b": 15, "dmc": "DMC 15349", "color_name": "Dk Mahogany" },
+  { "r": 247, "g": 81, "b": 86, "dmc": "DMC 13012", "color_name": "Dk Melon" },
+  { "r": 7, "g": 31, "b": 58, "dmc": "DMC 17160", "color_name": "Dk Navy Blue" },
+  { "r": 7, "g": 31, "b": 58, "dmc": "DMC 17982", "color_name": "Dk Navy Blue" },
+  { "r": 200, "g": 160, "b": 39, "dmc": "DMC 12876", "color_name": "Dk Old Gold" },
+  { "r": 152, "g": 146, "b": 57, "dmc": "DMC 16884", "color_name": "Dk Olive Green" },
+  { "r": 239, "g": 106, "b": 65, "dmc": "DMC 12322", "color_name": "Dk Orange Spice" },
+  { "r": 239, "g": 106, "b": 65, "dmc": "DMC 6720", "color_name": "Dk Orange Spice" },
+  { "r": 86, "g": 143, "b": 46, "dmc": "DMC 6062", "color_name": "Dk Parrot Green" },
+  { "r": 62, "g": 65, "b": 68, "dmc": "DMC 18512", "color_name": "Dk Pewter Gray" },
+  { "r": 62, "g": 65, "b": 68, "dmc": "DMC 18514", "color_name": "Dk Pewter Gray" },
+  { "r": 62, "g": 65, "b": 68, "dmc": "DMC 6079", "color_name": "Dk Pewter Gray" },
+  { "r": 74, "g": 99, "b": 50, "dmc": "DMC 16318", "color_name": "Dk Pine Green" },
+  { "r": 75, "g": 146, "b": 75, "dmc": "DMC 16018", "color_name": "Dk Pistachio Green" },
+  { "r": 75, "g": 146, "b": 75, "dmc": "DMC 6049", "color_name": "Dk Pistachio Green" },
+  { "r": 75, "g": 146, "b": 75, "dmc": "DMC 6264", "color_name": "Dk Pistachio Green" },
+  { "r": 75, "g": 146, "b": 75, "dmc": "DMC 6367", "color_name": "Dk Pistachio Green" },
+  { "r": 164, "g": 19, "b": 43, "dmc": "DMC 13072", "color_name": "Dk Red" },
+  { "r": 160, "g": 37, "b": 0, "dmc": "DMC 13340", "color_name": "Dk Red Copper" },
+  { "r": 201, "g": 52, "b": 77, "dmc": "DMC 13284", "color_name": "Dk Rose" },
+  { "r": 15, "g": 32, "b": 117, "dmc": "DMC 17100", "color_name": "Dk Royal Blue" },
+  { "r": 15, "g": 32, "b": 117, "dmc": "DMC 6214", "color_name": "Dk Royal Blue" },
+  { "r": 15, "g": 32, "b": 117, "dmc": "DMC 6796", "color_name": "Dk Royal Blue" },
+  { "r": 206, "g": 63, "b": 84, "dmc": "DMC 13071", "color_name": "Dk Salmon" },
+  { "r": 206, "g": 63, "b": 84, "dmc": "DMC 63328", "color_name": "Dk Salmon" },
+  { "r": 91, "g": 195, "b": 157, "dmc": "DMC 16186", "color_name": "Dk Seagreen" },
+  { "r": 124, "g": 105, "b": 109, "dmc": "DMC 18513", "color_name": "Dk Shell Gray" },
+  { "r": 172, "g": 74, "b": 82, "dmc": "DMC 13242", "color_name": "Dk Shell Pink" },
+  { "r": 124, "g": 124, "b": 132, "dmc": "DMC 18513", "color_name": "Dk Steel Gray" },
+  { "r": 124, "g": 124, "b": 132, "dmc": "DMC 6080", "color_name": "Dk Steel Gray" },
+  { "r": 165, "g": 70, "b": 60, "dmc": "DMC 12339", "color_name": "Dk Terra Cotta" },
+  { "r": 85, "g": 19, "b": 70, "dmc": "DMC 14101", "color_name": "Dk Violet" },
+  { "r": 46, "g": 114, "b": 136, "dmc": "DMC 17162", "color_name": "Dk Wedgewood" },
+  { "r": 23, "g": 86, "b": 109, "dmc": "DMC 6083", "color_name": "Dk Wedgewood" },
+  { "r": 197, "g": 173, "b": 102, "dmc": "DMC 12412", "color_name": "Dk Yellow Beige" },
+  { "r": 245, "g": 240, "b": 236, "dmc": "DMC 6098", "color_name": "Ecru", "hex": "#f5f0ec" },
+  { "r": 245, "g": 240, "b": 236, "dmc": "DMC 6115", "color_name": "Ecru", "hex": "#f5f0ec" },
+  { "r": 4, "g": 147, "b": 190, "dmc": "DMC 17010", "color_name": "Electric Blue", "hex": "#0493be" },
+  { "r": 129, "g": 149, "b": 105, "dmc": "DMC 16316", "color_name": "Fern Green", "hex": "#819569" },
+  { "r": 148, "g": 11, "b": 36, "dmc": "DMC 13013", "color_name": "Garnet", "hex": "#940b24" },
+  { "r": 148, "g": 11, "b": 36, "dmc": "DMC 13072", "color_name": "Garnet", "hex": "#940b24" },
+  { "r": 148, "g": 11, "b": 36, "dmc": "DMC 6019", "color_name": "Garnet", "hex": "#940b24" },
+  { "r": 251, "g": 92, "b": 132, "dmc": "DMC 13128", "color_name": "Geranium", "hex": "#fb5c84" },
+  { "r": 251, "g": 92, "b": 132, "dmc": "DMC 13152", "color_name": "Geranium", "hex": "#fb5c84" },
+  { "r": 182, "g": 110, "b": 42, "dmc": "DMC 15365", "color_name": "Golden Brown", "hex": "#b66e2a" },
+  { "r": 0, "g": 89, "b": 34, "dmc": "DMC 16228", "color_name": "Green", "hex": "#005922" },
+  { "r": 0, "g": 89, "b": 34, "dmc": "DMC 6053", "color_name": "Green", "hex": "#005922" },
+  { "r": 164, "g": 181, "b": 131, "dmc": "DMC 16315", "color_name": "Green Gray", "hex": "#a4b583" },
+  { "r": 75, "g": 136, "b": 53, "dmc": "DMC 16267", "color_name": "Hunter Green", "hex": "#4b8835" },
+  { "r": 75, "g": 136, "b": 53, "dmc": "DMC 6067", "color_name": "Hunter Green", "hex": "#4b8835" },
+  { "r": 70, "g": 164, "b": 46, "dmc": "DMC 16239", "color_name": "Kelly Green", "hex": "#46a42e" },
+  { "r": 70, "g": 164, "b": 46, "dmc": "DMC 6059", "color_name": "Kelly Green", "hex": "#46a42e" },
+  { "r": 254, "g": 231, "b": 61, "dmc": "DMC 12290", "color_name": "Lemon", "hex": "#fee73d" },
+  { "r": 254, "g": 231, "b": 61, "dmc": "DMC 6131", "color_name": "Lemon", "hex": "#fee73d" },
+  { "r": 128, "g": 163, "b": 186, "dmc": "DMC 13083", "color_name": "Lt Antique Blue", "hex": "#80a3ba" },
+  { "r": 128, "g": 163, "b": 186, "dmc": "DMC 17050", "color_name": "Lt Antique Blue", "hex": "#80a3ba" },
+  { "r": 128, "g": 163, "b": 186, "dmc": "DMC 6165", "color_name": "Lt Antique Blue", "hex": "#80a3ba" },
+  { "r": 128, "g": 163, "b": 186, "dmc": "DMC 6932", "color_name": "Lt Antique Blue", "hex": "#80a3ba" },
+  { "r": 180, "g": 153, "b": 164, "dmc": "DMC 14221", "color_name": "Lt Antique Violet", "hex": "#b499a4" },
+  { "r": 74, "g": 172, "b": 136, "dmc": "DMC 16186", "color_name": "Lt Aquamarine", "hex": "#4aac88" },
+  { "r": 249, "g": 218, "b": 140, "dmc": "DMC 12293", "color_name": "Lt Autumn Gold", "hex": "#f9da8c" },
+  { "r": 249, "g": 218, "b": 140, "dmc": "DMC 12305", "color_name": "Lt Autumn Gold", "hex": "#f9da8c" },
+  { "r": 158, "g": 173, "b": 87, "dmc": "DMC 16010", "color_name": "Lt Avocado Green", "hex": "#9ead57" },
+  { "r": 158, "g": 173, "b": 87, "dmc": "DMC 16256", "color_name": "Lt Avocado Green", "hex": "#9ead57" },
+  { "r": 166, "g": 195, "b": 217, "dmc": "DMC 17976", "color_name": "Lt Baby Blue", "hex": "#a6c3d9" },
+  { "r": 166, "g": 195, "b": 217, "dmc": "DMC 17977", "color_name": "Lt Baby Blue", "hex": "#a6c3d9" },
+  { "r": 255, "g": 225, "b": 225, "dmc": "DMC 13280", "color_name": "Lt Baby Pink", "hex": "#ffe1e1" },
+  { "r": 255, "g": 225, "b": 225, "dmc": "DMC 6819", "color_name": "Lt Baby Pink", "hex": "#ffe1e1" },
+  { "r": 188, "g": 192, "b": 168, "dmc": "DMC 18390", "color_name": "Lt Beaver Gray", "hex": "#bcc0a8" },
+  { "r": 179, "g": 154, "b": 125, "dmc": "DMC 6101", "color_name": "Lt Beige Brown", "hex": "#b39a7d" },
+  { "r": 243, "g": 236, "b": 220, "dmc": "DMC 15830", "color_name": "Lt Beige Gray", "hex": "#f3ecdc" },
+  { "r": 184, "g": 191, "b": 220, "dmc": "DMC 17005", "color_name": "Lt Blue Violet", "hex": "#b8bfdc" },
+  { "r": 184, "g": 191, "b": 220, "dmc": "DMC 17110", "color_name": "Lt Blue Violet", "hex": "#b8bfdc" },
+  { "r": 184, "g": 191, "b": 220, "dmc": "DMC 6341", "color_name": "Lt Blue Violet", "hex": "#b8bfdc" },
+  { "r": 140, "g": 96, "b": 42, "dmc": "DMC 15000", "color_name": "Lt Brown", "hex": "#8c602a" },
+  { "r": 140, "g": 96, "b": 42, "dmc": "DMC 6095", "color_name": "Lt Brown", "hex": "#8c602a" },
+  { "r": 140, "g": 96, "b": 42, "dmc": "DMC 13078", "color_name": "Lt Brown", "hex": "#8c602a" },
+  { "r": 198, "g": 83, "b": 117, "dmc": "13088", "color_name": "Mauve", "hex": "#c65375" },
+  { "r": 70, "g": 114, "b": 140, "dmc": "17051", "color_name": "Md Antique Blue", "hex": "#46728c" },
+  { "r": 70, "g": 114, "b": 140, "dmc": "6164", "color_name": "Md Antique Blue", "hex": "#46728c" },
+  { "r": 70, "g": 114, "b": 140, "dmc": "6931", "color_name": "Md Antique Blue", "hex": "#46728c" },
+  { "r": 181, "g": 111, "b": 124, "dmc": "13081", "color_name": "Md Antique Mauve", "hex": "#b56f7c" },
+  { "r": 147, "g": 117, "b": 128, "dmc": "14223", "color_name": "Md Antique Violet", "hex": "#937580" },
+  { "r": 105, "g": 124, "b": 46, "dmc": "16268", "color_name": "Md Avocado Green", "hex": "#697c2e" },
+  { "r": 95, "g": 141, "b": 169, "dmc": "17977", "color_name": "Md Baby Blue", "hex": "#5f8da9" },
+  { "r": 95, "g": 141, "b": 169, "dmc": "17978", "color_name": "Md Baby Blue", "hex": "#5f8da9" },
+  { "r": 95, "g": 141, "b": 169, "dmc": "6005", "color_name": "Md Baby Blue", "hex": "#5f8da9" },
+  { "r": 162, "g": 213, "b": 174, "dmc": "6504", "color_name": "Md Baby Green", "hex": "#a2d5ae" },
+  { "r": 149, "g": 152, "b": 132, "dmc": "18900", "color_name": "Md Beaver Gray", "hex": "#959884" },
+  { "r": 150, "g": 121, "b": 84, "dmc": "15398", "color_name": "Md Beige Brown", "hex": "#967954" },
+  { "r": 150, "g": 121, "b": 84, "dmc": "15898", "color_name": "Md Beige Brown", "hex": "#967954" },
+  { "r": 150, "g": 121, "b": 84, "dmc": "6100", "color_name": "Md Beige Brown", "hex": "#967954" },
+  { "r": 87, "g": 133, "b": 173, "dmc": "17180", "color_name": "Md Blue", "hex": "#5785ad" },
+  { "r": 138, "g": 181, "b": 160, "dmc": "16879", "color_name": "Md Blue Green", "hex": "#8ab5a0" },
+  { "r": 164, "g": 164, "b": 196, "dmc": "17110", "color_name": "Md Blue Violet", "hex": "#a4a4c4" },
+  { "r": 164, "g": 164, "b": 196, "dmc": "6250", "color_name": "Md Blue Violet", "hex": "#a4a4c4" },
+  { "r": 164, "g": 164, "b": 196, "dmc": "6340", "color_name": "Md Blue Violet", "hex": "#a4a4c4" },
+  { "r": 4, "g": 186, "b": 174, "dmc": "17001", "color_name": "Md Bright Turquoise", "hex": "#04baae" },
+  { "r": 4, "g": 186, "b": 174, "dmc": "6087", "color_name": "Md Bright Turquoise", "hex": "#04baae" },
+  { "r": 4, "g": 186, "b": 174, "dmc": "6996", "color_name": "Md Bright Turquoise", "hex": "#04baae" },
+  { "r": 121, "g": 81, "b": 26, "dmc": "15471", "color_name": "Md Brown", "hex": "#79511a" },
+  { "r": 121, "g": 81, "b": 26, "dmc": "15470", "color_name": "Md Brown", "hex": "#79511a" },
+  { "r": 207, "g": 80, "b": 30, "dmc": "13337", "color_name": "Md Copper", "hex": "#cf501e" },
+  { "r": 214, "g": 69, "b": 66, "dmc": "13111", "color_name": "Md Coral", "hex": "#d64542" },
+  { "r": 214, "g": 69, "b": 66, "dmc": "6029", "color_name": "Md Coral", "hex": "#d64542" },
+  { "r": 230, "g": 66, "b": 129, "dmc": "13056", "color_name": "Md Cranberry", "hex": "#e64281" },
+  { "r": 230, "g": 66, "b": 129, "dmc": "13063", "color_name": "Md Cranberry", "hex": "#e64281" },
+  { "r": 230, "g": 66, "b": 129, "dmc": "13153", "color_name": "Md Cranberry", "hex": "#e64281" },
+  { "r": 91, "g": 129, "b": 181, "dmc": "17030", "color_name": "Md Delft Blue", "hex": "#5b81b5" },
+  { "r": 91, "g": 129, "b": 181, "dmc": "6016", "color_name": "Md Delft Blue", "hex": "#5b81b5" },
+  { "r": 91, "g": 129, "b": 181, "dmc": "7030", "color_name": "Md Delft Blue", "hex": "#5b81b5" },
+  { "r": 144, "g": 62, "b": 78, "dmc": "13082", "color_name": "Md Dk Antique Mauve", "hex": "#903e4e" },
+  { "r": 144, "g": 62, "b": 78, "dmc": "63726", "color_name": "Md Dk Antique Mauve", "hex": "#903e4e" },
+  { "r": 148, "g": 139, "b": 179, "dmc": "6250", "color_name": "Md Dk Blue Violet", "hex": "#948db3" },
+  { "r": 221, "g": 129, "b": 143, "dmc": "13001", "color_name": "Md Dusty Rose", "hex": "#dd818f" },
+  { "r": 221, "g": 129, "b": 143, "dmc": "13153", "color_name": "Md Dusty Rose", "hex": "#dd818f" },
+  { "r": 19, "g": 188, "b": 222, "dmc": "6996", "color_name": "Md Electric Blue", "hex": "#13bcde" },
+  { "r": 54, "g": 164, "b": 89, "dmc": "16205", "color_name": "Md Emerald Green", "hex": "#36a459" },
+  { "r": 54, "g": 164, "b": 89, "dmc": "16227", "color_name": "Md Emerald Green", "hex": "#36a459" },
+  { "r": 132, "g": 7, "b": 32, "dmc": "11814", "color_name": "Md Garnet", "hex": "#840720" },
+  { "r": 132, "g": 7, "b": 32, "dmc": "61513", "color_name": "Md Garnet", "hex": "#840720" },
+  { "r": 15, "g": 50, "b": 81, "dmc": "17981", "color_name": "Navy Blue", "hex": "#0f3251" },
+  { "r": 153, "g": 229, "b": 166, "dmc": "16020", "color_name": "Nile Green", "hex": "#99e5a6" },
+  { "r": 153, "g": 229, "b": 166, "dmc": "16030", "color_name": "Nile Green", "hex": "#99e5a6" },
+  { "r": 153, "g": 229, "b": 166, "dmc": "6954", "color_name": "Nile Green", "hex": "#99e5a6" },
+  { "r": 255, "g": 255, "b": 225, "dmc": "12275", "color_name": "Off White", "hex": "#ffffe1" },
+  { "r": 255, "g": 255, "b": 225, "dmc": "15387", "color_name": "Off White", "hex": "#ffffe1" },
+  { "r": 255, "g": 255, "b": 225, "dmc": "6746", "color_name": "Off White", "hex": "#ffffe1" },
+  { "r": 173, "g": 203, "b": 225, "dmc": "6800", "color_name": "Pale Delft Blue", "hex": "#adcbe1" },
+  { "r": 247, "g": 182, "b": 112, "dmc": "15350", "color_name": "Pale Golden Brown", "hex": "#f7b670" },
+  { "r": 255, "g": 228, "b": 139, "dmc": "12293", "color_name": "Pale Yellow", "hex": "#ffe48b" },
+  { "r": 255, "g": 228, "b": 139, "dmc": "6121", "color_name": "Pale Yellow", "hex": "#ffe48b" },
+  { "r": 255, "g": 228, "b": 139, "dmc": "6121", "color_name": "Pale Yellow", "hex": "#ffe48b" },
+  { "r": 242, "g": 168, "b": 152, "dmc": "13006", "color_name": "Peach", "hex": "#f2a898" },
+  { "r": 242, "g": 168, "b": 152, "dmc": "13067", "color_name": "Peach", "hex": "#f2a898" },
+  { "r": 242, "g": 168, "b": 152, "dmc": "13306", "color_name": "Peach", "hex": "#f2a898" },
+  { "r": 242, "g": 168, "b": 152, "dmc": "6031", "color_name": "Peach", "hex": "#f2a898" },
+  { "r": 95, "g": 158, "b": 165, "dmc": "17168", "color_name": "Peacock Blue", "hex": "#5f9ea5" },
+  { "r": 191, "g": 191, "b": 195, "dmc": "18398", "color_name": "Pearl Gray", "hex": "#bfbfc3" },
+  { "r": 191, "g": 191, "b": 195, "dmc": "18511", "color_name": "Pearl Gray", "hex": "#bfbfc3" },
+  { "r": 191, "g": 191, "b": 195, "dmc": "6081", "color_name": "Pearl Gray", "hex": "#bfbfc3" },
+  { "r": 87, "g": 93, "b": 97, "dmc": "18512", "color_name": "Pewter Gray", "hex": "#575d61" },
+  { "r": 87, "g": 93, "b": 97, "dmc": "18514", "color_name": "Pewter Gray", "hex": "#575d61" },
+  { "r": 87, "g": 93, "b": 97, "dmc": "6097", "color_name": "Pewter Gray", "hex": "#575d61" },
+  { "r": 157, "g": 178, "b": 117, "dmc": "16264", "color_name": "Pine Green", "hex": "#9db275" },
+  { "r": 157, "g": 178, "b": 117, "dmc": "16266", "color_name": "Pine Green", "hex": "#9db275" },
+  { "r": 183, "g": 50, "b": 117, "dmc": "14089", "color_name": "Plum", "hex": "#b73275" },
+  { "r": 97, "g": 161, "b": 0, "dmc": "6118", "color_name": "Pumpkin", "hex": "#fa8500" },
+  { "r": 97, "g": 161, "b": 0, "dmc": "6125", "color_name": "Pumpkin", "hex": "#fa8500" },
+  { "r": 195, "g": 42, "b": 60, "dmc": "11321", "color_name": "Red", "hex": "#c32a3c" },
+  { "r": 195, "g": 42, "b": 60, "dmc": "13047", "color_name": "Red", "hex": "#c32a3c" },
+  { "r": 195, "g": 42, "b": 60, "dmc": "13500", "color_name": "Red", "hex": "#c32a3c" },
+  { "r": 195, "g": 42, "b": 60, "dmc": "6020", "color_name": "Red", "hex": "#c32a3c" },
+  { "r": 195, "g": 42, "b": 60, "dmc": "6028", "color_name": "Red", "hex": "#c32a3c" },
+  { "r": 195, "g": 42, "b": 60, "dmc": "6035", "color_name": "Red", "hex": "#c32a3c" },
+  { "r": 187, "g": 58, "b": 15, "dmc": "12326", "color_name": "Red Copper", "hex": "#bb3a0f" },
+  { "r": 187, "g": 58, "b": 15, "dmc": "13337", "color_name": "Red Copper", "hex": "#bb3a0f" },
+  { "r": 187, "g": 58, "b": 15, "dmc": "6919", "color_name": "Red Copper", "hex": "#bb3a0f" },
+  { "r": 214, "g": 74, "b": 95, "dmc": "13283", "color_name": "Rose", "hex": "#d64a5f" },
+  { "r": 214, "g": 74, "b": 95, "dmc": "6024", "color_name": "Rose", "hex": "#d64a5f" },
+  { "r": 34, "g": 63, "b": 136, "dmc": "17023", "color_name": "Royal Blue", "hex": "#223f88" },
+  { "r": 230, "g": 133, "b": 143, "dmc": "13069", "color_name": "Salmon", "hex": "#e6858f" },
+  { "r": 230, "g": 133, "b": 143, "dmc": "13241", "color_name": "Salmon", "hex": "#e6858f" },
+  { "r": 230, "g": 133, "b": 143, "dmc": "6760", "color_name": "Salmon", "hex": "#e6858f" },
+  { "r": 111, "g": 177, "b": 193, "dmc": "17161", "color_name": "Sky Blue", "hex": "#6fb1c1" },
+  { "r": 111, "g": 177, "b": 193, "dmc": "6009", "color_name": "Sky Blue", "hex": "#6fb1c1" },
+  { "r": 250, "g": 250, "b": 250, "dmc": "11002", "color_name": "Snow White", "hex": "#fafafa" },
+  { "r": 250, "g": 250, "b": 250, "dmc": "5200", "color_name": "Snow White", "hex": "#fafafa" },
+  { "r": 181, "g": 140, "b": 83, "dmc": "15347", "color_name": "Tan", "hex": "#b58c53" },
+  { "r": 181, "g": 140, "b": 83, "dmc": "15943", "color_name": "Tan", "hex": "#b58c53" },
+  { "r": 181, "g": 140, "b": 83, "dmc": "6096", "color_name": "Tan", "hex": "#b58c53" },
+  { "r": 250, "g": 133, "b": 0, "dmc": "12099", "color_name": "Tangerine", "hex": "#fa8500" },
+  { "r": 250, "g": 133, "b": 0, "dmc": "12289", "color_name": "Tangerine", "hex": "#fa8500" },
+  { "r": 250, "g": 133, "b": 0, "dmc": "12327", "color_name": "Tangerine", "hex": "#fa8500" },
+  { "r": 255, "g": 201, "b": 174, "dmc": "6945", "color_name": "Tawny", "hex": "#ffc9ae" },
+  { "r": 195, "g": 90, "b": 76, "dmc": "12975", "color_name": "Terra Cotta", "hex": "#c35a4c" },
+  { "r": 87, "g": 162, "b": 177, "dmc": "6597", "color_name": "Turquoise", "hex": "#57a2b1" },
+  { "r": 49, "g": 55, "b": 45, "dmc": "18501", "color_name": "ul dk beaver gray", "hex": "#31372d" },
+  { "r": 119, "g": 104, "b": 71, "dmc": "15393", "color_name": "ul dk beige gray", "hex": "#776847" },
+  { "r": 62, "g": 34, "b": 0, "dmc": "15381", "color_name": "ul dk coffee brown", "hex": "#3e2200" },
+  { "r": 62, "g": 34, "b": 0, "dmc": "15476", "color_name": "ul dk coffee brown", "hex": "#3e2200" },
+  { "r": 62, "g": 34, "b": 0, "dmc": "15477", "color_name": "ul dk coffee brown", "hex": "#3e2200" },
+  { "r": 62, "g": 34, "b": 0, "dmc": "6092", "color_name": "ul dk coffee brown", "hex": "#3e2200" },
+  { "r": 184, "g": 66, "b": 99, "dmc": "13004", "color_name": "ul dk dusty rose", "hex": "#b84263" },
+  { "r": 184, "g": 66, "b": 99, "dmc": "13065", "color_name": "ul dk dusty rose", "hex": "#b84263" },
+  { "r": 105, "g": 57, "b": 108, "dmc": "14300", "color_name": "ul dk lavender", "hex": "#69396c" },
+  { "r": 20, "g": 75, "b": 38, "dmc": "16021", "color_name": "ul dk pistachio green", "hex": "#144b26" },
+  { "r": 20, "g": 75, "b": 38, "dmc": "6048", "color_name": "ul dk pistachio green", "hex": "#144b26" },
+  { "r": 213, "g": 225, "b": 145, "dmc": "16253", "color_name": "ul lt avocado green", "hex": "#d5e191" },
+  { "r": 213, "g": 225, "b": 145, "dmc": "6069", "color_name": "ul lt avocado green", "hex": "#d5e191" },
+  { "r": 255, "g": 170, "b": 207, "dmc": "14085", "color_name": "ul lt plum", "hex": "#ffaacf" },
+  { "r": 255, "g": 170, "b": 207, "dmc": "63609", "color_name": "ul lt plum", "hex": "#ffaacf" },
+  { "r": 254, "g": 251, "b": 206, "dmc": "12386", "color_name": "ul pale yellow", "hex": "#fefbce" },
+  { "r": 30, "g": 70, "b": 105, "dmc": "6012", "color_name": "ul vy dk baby blue", "hex": "#1e4669" },
+  { "r": 147, "g": 97, "b": 72, "dmc": "15936", "color_name": "ul vy dk desert sand", "hex": "#936148" },
+  { "r": 168, "g": 2, "b": 74, "dmc": "13065", "color_name": "ul vy dk dusty rose", "hex": "#a8024a" },
+  { "r": 175, "g": 94, "b": 0, "dmc": "15308", "color_name": "ul vy dk topaz", "hex": "#af5e00" },
+  { "r": 175, "g": 94, "b": 0, "dmc": "15309", "color_name": "ul vy dk topaz", "hex": "#af5e00" },
+  { "r": 205, "g": 219, "b": 232, "dmc": "17049", "color_name": "ul vy lt antique blue", "hex": "#cddbe8" },
+  { "r": 234, "g": 221, "b": 211, "dmc": "15533", "color_name": "ul vy lt beige brown", "hex": "#eaded3" },
+  { "r": 255, "g": 206, "b": 215, "dmc": "6963", "color_name": "ul vy lt dusty rose", "hex": "#ffced7" },
+  { "r": 245, "g": 195, "b": 169, "dmc": "15345", "color_name": "ul vy lt mahogany", "hex": "#f5c3a9" },
+  { "r": 255, "g": 213, "b": 213, "dmc": "13239", "color_name": "ul vy lt shell pink", "hex": "#ffd5d5" },
+  { "r": 255, "g": 215, "b": 206, "dmc": "13239", "color_name": "ul vy lt shell pink", "hex": "#ffd7ce" },
+  { "r": 242, "g": 211, "b": 168, "dmc": "15369", "color_name": "ul vy lt tan", "hex": "#f2d3a8" },
+  { "r": 242, "g": 211, "b": 168, "dmc": "15372", "color_name": "ul vy lt tan", "hex": "#f2d3a8" },
+  { "r": 242, "g": 211, "b": 168, "dmc": "6098", "color_name": "ul vy lt tan", "hex": "#f2d3a8" },
+  { "r": 242, "g": 211, "b": 168, "dmc": "6739", "color_name": "ul vy lt tan", "hex": "#f2d3a8" },
+  { "r": 172, "g": 212, "b": 233, "dmc": "17159", "color_name": "Light Blue", "hex": "#acd4e9" },
+  { "r": 178, "g": 212, "b": 189, "dmc": "16875", "color_name": "Light Blue Green", "hex": "#b2d4bd" },
+  { "r": 178, "g": 212, "b": 189, "dmc": "6504", "color_name": "Light Blue Green", "hex": "#b2d4bd" },
+  { "r": 205, "g": 210, "b": 234, "dmc": "17004", "color_name": "Light Blue Violet", "hex": "#cdd2ea" },
+  { "r": 160, "g": 116, "b": 62, "dmc": "15347", "color_name": "Light Brown", "hex": "#a0743e" },
+  { "r": 160, "g": 116, "b": 62, "dmc": "15371", "color_name": "Light Brown", "hex": "#a0743e" },
+  { "r": 255, "g": 155, "b": 178, "dmc": "13127", "color_name": "Light Carnation", "hex": "#ff9bb2" },
+  { "r": 255, "g": 155, "b": 178, "dmc": "6034", "color_name": "Light Carnation", "hex": "#ff9bb2" },
+  { "r": 183, "g": 196, "b": 228, "dmc": "17005", "color_name": "Light Cornflower Blue", "hex": "#b7c4e4" },
+  { "r": 255, "g": 170, "b": 197, "dmc": "13129", "color_name": "Light Cranberry", "hex": "#ffaac5" },
+  { "r": 255, "g": 170, "b": 197, "dmc": "13151", "color_name": "Light Cranberry", "hex": "#ffaac5" },
+  { "r": 241, "g": 219, "b": 208, "dmc": "6336", "color_name": "Light Desert Sand", "hex": "#f1dbd0" },
+  { "r": 246, "g": 167, "b": 180, "dmc": "13125", "color_name": "Light Dusty Rose", "hex": "#f6a7b4" },
+  { "r": 246, "g": 167, "b": 180, "dmc": "13129", "color_name": "Light Dusty Rose", "hex": "#f6a7b4" },
+  { "r": 250, "g": 246, "b": 183, "dmc": "12292", "color_name": "Light Golden Yellow", "hex": "#faf6b7" },
+  { "r": 250, "g": 246, "b": 183, "dmc": "6123", "color_name": "Light Golden Yellow", "hex": "#faf6b7" },
+  { "r": 181, "g": 225, "b": 190, "dmc": "16209", "color_name": "Light Jade", "hex": "#b5e1be" },
+  { "r": 247, "g": 161, "b": 112, "dmc": "6402", "color_name": "Light Mahogany", "hex": "#f7a170" },
+  { "r": 253, "g": 220, "b": 197, "dmc": "12331", "color_name": "Light Peach", "hex": "#fddcc5" },
+  { "r": 226, "g": 226, "b": 231, "dmc": "18510", "color_name": "Light Pearl Gray", "hex": "#e2e2e7" },
+  { "r": 226, "g": 226, "b": 231, "dmc": "6082", "color_name": "Light Pearl Gray", "hex": "#e2e2e7" },
+  { "r": 199, "g": 205, "b": 206, "dmc": "6081", "color_name": "Light Pewter", "hex": "#c7cdce" },
+  { "r": 210, "g": 235, "b": 197, "dmc": "16015", "color_name": "Light Pistachio Green", "hex": "#d2ebc5" },
+  { "r": 210, "g": 235, "b": 197, "dmc": "16016", "color_name": "Light Pistachio Green", "hex": "#d2ebc5" },
+  { "r": 210, "g": 235, "b": 197, "dmc": "6052", "color_name": "Light Pistachio Green", "hex": "#d2ebc5" },
+  { "r": 230, "g": 125, "b": 172, "dmc": "14086", "color_name": "Light Plum", "hex": "#e67dac" },
+  { "r": 255, "g": 213, "b": 213, "dmc": "13067", "color_name": "Light Salmon", "hex": "#ffd5d5" },
+  { "r": 233, "g": 177, "b": 168, "dmc": "13240", "color_name": "Light Shell Pink", "hex": "#e9b1a8" },
+  { "r": 211, "g": 255, "b": 249, "dmc": "17053", "color_name": "Light Sky Blue", "hex": "#d3fff9" },
+  { "r": 221, "g": 182, "b": 137, "dmc": "15372", "color_name": "Light Tan", "hex": "#ddb689" },
+  { "r": 221, "g": 182, "b": 137, "dmc": "15375", "color_name": "Light Tan", "hex": "#ddb689" },
+  { "r": 221, "g": 182, "b": 137, "dmc": "6738", "color_name": "Light Tan", "hex": "#ddb689" },
+  { "r": 255, "g": 243, "b": 225, "dmc": "13334", "color_name": "Light Tawny", "hex": "#fff3e1" },
+  { "r": 255, "g": 243, "b": 225, "dmc": "6336", "color_name": "Light Tawny", "hex": "#fff3e1" },
+  { "r": 237, "g": 163, "b": 148, "dmc": "12337", "color_name": "Light Terra Cotta", "hex": "#eda394" },
+  { "r": 237, "g": 163, "b": 148, "dmc": "6042", "color_name": "Light Terra Cotta", "hex": "#eda394" },
+  { "r": 237, "g": 163, "b": 148, "dmc": "6758", "color_name": "Light Terra Cotta", "hex": "#eda394" },
+  { "r": 246, "g": 233, "b": 144, "dmc": "12295", "color_name": "Light Topaz", "hex": "#f6e990" },
+  { "r": 228, "g": 254, "b": 176, "dmc": "16250", "color_name": "Light Yellow Green", "hex": "#e4feb0" },
+  { "r": 228, "g": 254, "b": 176, "dmc": "6052", "color_name": "Light Yellow Green", "hex": "#e4feb0" },
+  { "r": 250, "g": 250, "b": 250, "dmc": "11001", "color_name": "White", "hex": "#fafafa" }
+
+        ];
+
+        // Unique set of symbols for the pattern
+        const symbols = ['$', '_', '&', 'E', '3', 'B', '7', 'G', 'L', 'Z'];
+
+        document.getElementById("upload-form").onsubmit = function(event) {
+            event.preventDefault();
+
+            const messageDiv = document.getElementById("message");
+            messageDiv.innerHTML = "Converting...";
+
+            const imgFile = document.getElementById("image-upload").files[0];
+            const imgElement = new Image();
+            const stitches = parseInt(document.getElementById("stitches").value);
+            const colorCount = parseInt(document.getElementById("color-count").value);
+
+            imgElement.onload = function() {
+                console.log("Image loaded successfully.");
+                const canvas = document.getElementById("pattern-canvas");
+                const ctx = canvas.getContext("2d");
+
+                const cellSize = Math.floor(Math.min(imgElement.width, imgElement.height) / stitches);
+                canvas.width = cellSize * stitches;
+                canvas.height = cellSize * stitches;
+
+                ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const pixels = imageData.data;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                let colorMap = {};  // To map DMC colors to symbols
+                let colorList = []; // List to store the color objects (for symbols key)
+
+                for (let row = 0; row < stitches; row++) {
+                    for (let col = 0; col < stitches; col++) {
+                        let r = 0, g = 0, b = 0, count = 0;
+
+                        for (let y = row * cellSize; y < (row + 1) * cellSize; y++) {
+                            for (let x = col * cellSize; x < (col + 1) * cellSize; x++) {
+                                const idx = (y * canvas.width + x) * 4;
+                                r += pixels[idx];
+                                g += pixels[idx + 1];
+                                b += pixels[idx + 2];
+                                count++;
+                            }
+                        }
+
+                        r = Math.floor(r / count);
+                        g = Math.floor(g / count);
+                        b = Math.floor(b / count);
+
+                        // Match closest DMC color
+                        const closestDmc = getClosestDmcColor(r, g, b, colorCount);
+                        const colorKey = `${closestDmc.r},${closestDmc.g},${closestDmc.b}`;
+
+                        if (!colorMap[colorKey]) {
+                            colorMap[colorKey] = symbols[colorList.length % symbols.length]; // Assign unique symbol
+                            colorList.push({color: closestDmc, symbol: colorMap[colorKey]});
+                        }
+                        const symbol = colorMap[colorKey];
+
+                        // Draw with DMC color
+                        ctx.fillStyle = `rgb(${closestDmc.r},${closestDmc.g},${closestDmc.b})`;
+                        ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+
+                        ctx.fillStyle = "black";
+                        ctx.font = `${cellSize / 2}px Arial`;
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillText(symbol, col * cellSize + cellSize / 2, row * cellSize + cellSize / 2);
+                    }
+                }
+
+                messageDiv.innerHTML = "Conversion Completed!";
+                document.getElementById("pattern").style.display = "block";
+
+                // Generate Symbols Key
+                generateSymbolsKey(colorList);
+            };
+
+            imgElement.onerror = function() {
+                console.log("Error loading the image.");
+                messageDiv.innerHTML = "Error loading the image.";
+            };
+
+            imgElement.src = URL.createObjectURL(imgFile);
+        };
+
+        // Function to find the closest DMC color
+        function getClosestDmcColor(r, g, b, colorCount) {
+            let minDist = Infinity;
+            let closestDmc = dmcColors[0];
+
+            dmcColors.forEach(color => {
+                const dist = Math.sqrt(
+                    Math.pow(r - color.r, 2) + 
+                    Math.pow(g - color.g, 2) + 
+                    Math.pow(b - color.b, 2)
+                );
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestDmc = color;
+                }
+            });
+
+            return closestDmc;
+        }
+
+        // Function to generate the Symbols Key
+        function generateSymbolsKey(colorList) {
+            const keyDiv = document.getElementById("symbols-key");
+            keyDiv.innerHTML = "";
+
+            colorList.forEach(item => {
+                const symbol = item.symbol;
+                const dmc = item.color.dmc;
+                const name = item.color.color_name;
+                keyDiv.innerHTML += `<p>${symbol} - ${dmc} (${name})</p>`;
+            });
+
+            document.getElementById("key-section").style.display = "block";
+        }
+
+        // Download functions
+        document.getElementById("download").onclick = function() {
+            downloadCanvas(document.getElementById("pattern-canvas"), "cross_stitch_pattern.png");
+        };
+
+        document.getElementById("download-key").onclick = function() {
+            downloadCanvas(document.getElementById("key-canvas"), "symbols_key.png");
+        };
+
+        document.getElementById("download-additional-pattern").onclick = function() {
+            downloadCanvas(document.getElementById("additional-pattern-canvas"), "color_pattern.png");
+        };
+
+        function downloadCanvas(canvas, filename) {
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL();
+            link.download = filename;
+            link.click();
+        }
+    </script>
+</body>
+</html>
